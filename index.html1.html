@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intercambio de Dólares en Tiempo Real</title>
+    <style>
+        /* --- Estilos Generales --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- Contenedor Principal --- */
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #1e3a5f;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        /* --- Cuadrícula de Monedas --- */
+        .currency-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* --- Tarjeta de Moneda --- */
+        .currency-card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            transition: transform 0.2s;
+            text-align: left;
+        }
+
+        .currency-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .currency-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .currency-header img {
+            width: 40px;
+            height: auto;
+            margin-right: 15px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .currency-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #1e3a5f;
+        }
+
+        .currency-rate {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .currency-rate .symbol {
+            font-weight: normal;
+            color: #555;
+        }
+
+        .currency-note {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        #last-update {
+            margin-top: 30px;
+            font-style: italic;
+            color: #777;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Conversor de Divisas</h1>
+        <p>Valor de 1 Dólar Americano (USD) en monedas de Latinoamérica.</p>
+        
+        <div class="currency-grid">
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/mx.png" alt="Bandera de México">
+                    <h2>Peso Mexicano</h2>
+                </div>
+                <div class="currency-rate" id="MXN"><span class="symbol">MXN$</span> ...</div>
+            </div>
+
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/ar.png" alt="Bandera de Argentina">
+                    <h2>Peso Argentino</h2>
+                </div>
+                <div class="currency-rate" id="ARS"><span class="symbol">ARS$</span> ...</div>
+            </div>
+
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/ve.png" alt="Bandera de Venezuela">
+                    <h2>Bolívar Venezolano</h2>
+                </div>
+                <div class="currency-rate" id="VES"><span class="symbol">VES$</span> ...</div>
+            </div>
+
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/pe.png" alt="Bandera de Perú">
+                    <h2>Sol Peruano</h2>
+                </div>
+                <div class="currency-rate" id="PEN"><span class="symbol">S/</span> ...</div>
+            </div>
+
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/pa.png" alt="Bandera de Panamá">
+                    <h2>Balboa Panameño</h2>
+                </div>
+                <div class="currency-rate" id="PAB"><span class="symbol">B/</span> ...</div>
+                <div class="currency-note">Panamá usa el USD. El Balboa tiene paridad 1 a 1 con el dólar.</div>
+            </div>
+
+            <div class="currency-card">
+                <div class="currency-header">
+                    <img src="https://flagcdn.com/w40/sv.png" alt="Bandera de El Salvador">
+                    <h2>Dólar (El Salvador)</h2>
+                </div>
+                <div class="currency-rate" id="USD"><span class="symbol">$</span> ...</div>
+                <div class="currency-note">El Salvador adoptó el Dólar Americano (USD) como moneda oficial.</div>
+            </div>
+        </div>
+
+        <div id="last-update">Actualizando valores...</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL de la API gratuita. Usamos USD como base.
+            const apiUrl = 'https://open.er-api.com/v6/latest/USD';
+
+            // Función para obtener y mostrar las tasas de cambio
+            async function fetchRates() {
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error('La respuesta de la red no fue exitosa.');
+                    }
+                    const data = await response.json();
+                    
+                    // Monedas que nos interesan
+                    const rates = data.rates;
+                    const currencies = ['MXN', 'ARS', 'VES', 'PEN', 'PAB', 'USD'];
+
+                    // Actualizar cada tarjeta con el valor correspondiente
+                    currencies.forEach(currency => {
+                        const element = document.getElementById(currency);
+                        if (element && rates[currency]) {
+                            // Formatear el número a una cantidad razonable de decimales
+                            let value = rates[currency].toFixed(2);
+                            if (rates[currency] < 0.1) {
+                                value = rates[currency].toFixed(4); // Más decimales para valores pequeños
+                            }
+                             if (currency === 'VES') {
+                                value = rates[currency].toFixed(2); // Ajuste específico si es necesario
+                            }
+
+                            // Obtenemos el símbolo que ya está en el HTML y lo mantenemos
+                            const symbol = element.querySelector('.symbol').outerHTML;
+                            element.innerHTML = `${symbol} ${value}`;
+                        }
+                    });
+
+                    // Mostrar la hora de la última actualización
+                    const updateTime = new Date(data.time_last_update_utc).toLocaleString();
+                    document.getElementById('last-update').innerText = `Última actualización: ${updateTime}`;
+
+                } catch (error) {
+                    console.error('Error al obtener las tasas de cambio:', error);
+                    document.getElementById('last-update').innerText = 'No se pudieron cargar los datos. Intenta más tarde.';
+                }
+            }
+
+            // Llamar a la función al cargar la página
+            fetchRates();
+
+            // Configurar la actualización automática cada hora (3600000 milisegundos)
+            setInterval(fetchRates, 3600000); 
+        });
+    </script>
+
+</body>
+</html>
